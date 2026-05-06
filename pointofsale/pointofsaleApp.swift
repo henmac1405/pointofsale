@@ -8,10 +8,12 @@
 import SwiftUI
 
 @main
-struct pointofsaleApp: App {
+struct contohApp: App {
+    @StateObject var controller = Controller()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().environmentObject(controller)
         }
     }
 }

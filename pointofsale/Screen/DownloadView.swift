@@ -22,7 +22,6 @@ struct DownloadView: View {
                     .font(.headline)
                     .foregroundColor(.white)
                 Spacer()
-                // Spacer tambahan untuk menyeimbangkan tombol back
                 Image(systemName: "arrow.left").opacity(0)
             }
             .padding()
@@ -49,8 +48,7 @@ struct DownloadView: View {
             
             
             Spacer()
-            
-            // Footer Buttons
+             
             HStack(spacing: 15) {
                 Button(action: { presentationMode.wrappedValue.dismiss() }) {
                     Text("TUTUP")

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct contohApp: App {
@@ -15,5 +16,6 @@ struct contohApp: App {
         WindowGroup {
             ContentView().environmentObject(controller)
         }
+        .modelContainer(for: [AppConfig.self, Category.self, Product.self, Discount.self, Tender.self, Salestype.self, HeaderFooter.self, VoidReason.self, ItemAdd.self,  ItemSize.self,  Size.self,  SalesMan.self,  Calender.self,  Setting.self])
     }
 }

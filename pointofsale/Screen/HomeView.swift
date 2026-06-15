@@ -99,6 +99,8 @@ struct HomeView: View {
                                     print("programpos_id : \(item.programpos_id)  -  \(item.programpos_name)")
                                     programposID = item.programpos_id
                                     programposName = item.programpos_name
+                                    self.controller.programposID = item.programpos_id
+                                    self.controller.programposName = item.programpos_name
                                     if (item.isparent == 1 && item.parent_id == "0"){
                                         self.controller.filterIsParent = 0
                                         self.controller.parent_id = item.programpos_id

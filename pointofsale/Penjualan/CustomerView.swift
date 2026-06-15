@@ -61,7 +61,7 @@ struct CustomerView: View {
                                     }
                             }
                             Button(action:{
-                                self.controller.custonerfindbynohp(noHP: noHP) { json in
+                                self.controller.customerfindbynohp(noHP: noHP) { json in
                                     DispatchQueue.main.async {
                                         if let data = json {
                                             name = ""

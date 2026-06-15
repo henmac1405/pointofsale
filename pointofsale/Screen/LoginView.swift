@@ -117,7 +117,7 @@ struct LoginView: View {
                                 
                                 Button(action: {
                                     isMenuExpanded = false
-                                    navigateToDownload = true /
+                                    navigateToDownload = true 
                                 }) {
                                     menuItem(label: "Download", icon: "square.and.arrow.down.fill")
                                 }

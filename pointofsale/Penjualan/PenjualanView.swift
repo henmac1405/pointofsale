@@ -26,6 +26,7 @@ struct PenjualanView: View {
     @State private var navigateToScanBarcode = false
     @State private var navigateToScanTicket = false
     @State private var navigateToPenjualanEdit = false
+    @State private var navigateToHome = false
     
     @State private var counter = 0
     @State private var sumprice : Double = 00
@@ -127,8 +128,7 @@ struct PenjualanView: View {
                     Image(systemName: "xmark")
                         .foregroundColor(.white)
                     Button(action:{
-                        navigateToCategory = true
-                        //                            navPath.append("CATEGORY")
+                        navigateToCategory = true 
                     }){
                         Image(systemName: "line.3.horizontal")
                             .foregroundColor(.white)
@@ -265,7 +265,7 @@ struct PenjualanView: View {
             HStack(spacing: 10) {
                 // Home Button
                 Button(action: {
-                    dismiss()
+                    self.navigateToHome = true
                 }) {
                     Image(systemName: "house.fill")
                         .font(.title2)
@@ -386,6 +386,10 @@ struct PenjualanView: View {
         //            //Penjualan Edit
         .navigationDestination(isPresented: $navigateToPenjualanEdit) {
             PenjualanEditView()
+        }
+        //            //Home
+        .navigationDestination(isPresented: $navigateToHome) {
+            HomeView()
         }
         
     }

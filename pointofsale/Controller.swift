@@ -26,8 +26,12 @@ class Controller : ObservableObject{
     @Published var signature = ""
     @Published var apiKey = ""
     @Published var token = ""
-    @Published var POSVersion = "5.0.3"
+    @Published var POSVersion = "5.0.2"
     @Published var POSupdate = "Last Update 11 Febuari 2026"
+    
+    @Published var programposID = ""
+    @Published var programposName = ""
+    
     
     @Published var isAutoShowSyncronize = false
     @Published var showSyncronize = false
@@ -91,7 +95,7 @@ class Controller : ObservableObject{
     
     
     @Published var filterIsParent = 1
-    @Published var parent_id = "" 
+    @Published var parent_id = ""
     
     var filteredData: [DataProgramPos] {
         if filterIsParent == 1 {
@@ -103,13 +107,20 @@ class Controller : ObservableObject{
                 item.parent_id == parent_id
             }
         }
-            
+        
     }
-     
     
-     
     
-
+    @Published var showToast: Bool = false
+    @Published var toastMessage: String = ""
+    @Published var toastStyle: ToastStyle = .success
+    
+    
+    enum ToastStyle {
+        case success, error
+    }
+    
+    
     // Function ===========================================================================================================================================
     
     func getFormattedDateTimeFull() -> String {
@@ -185,11 +196,11 @@ class Controller : ObservableObject{
     }
     
     func formatNumber(_ value: Int) -> String {
-            let formatter = NumberFormatter()
-            formatter.numberStyle = .decimal
-            formatter.groupingSeparator = "."
-            return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
-        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
     
     func generateToken() -> String {
         
@@ -229,16 +240,31 @@ class Controller : ObservableObject{
         let headerDict = ["typ": "API", "alg": "SHA256"]
         guard let headerData = try? JSONEncoder().encode(headerDict) else { return "" }
         let headerBase64 = headerData.base64EncodedString()
-         
+        
         let payloadBase64 = Data(secretKey.utf8).base64EncodedString()
-         
+        
         let tsBase64 = Data(timestampWithZ.utf8).base64EncodedString()
-         
+        
         let combinedSecretKey = "\(headerBase64).\(payloadBase64).\(tsBase64)"
-         
+        
         return Data(combinedSecretKey.utf8).base64EncodedString()
     }
     
+    func toastShow(message: String, style: ToastStyle) {
+        self.toastMessage = message
+        self.toastStyle = style
+        
+        withAnimation(.spring()) {
+            self.showToast = true
+        }
+        
+        // Otomatis hilangkan Toast setelah 3 detik
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            withAnimation(.easeInOut) {
+                self.showToast = false
+            }
+        }
+    }
     
     // Transaksi Penjualan ========================================================================================
     
@@ -248,40 +274,40 @@ class Controller : ObservableObject{
         
         status.append(Status(
             salesid : sales_id,
-            Strsalesdate : getFormattedDateYYYYMMdd(),
-            Salesdate : iSalesdate,
-            Qty : 1,
-            Is_open : 0,
-            Is_discount : 0,
-            Totalsales : 0,
-            Totalpayment : 0,
-            Totalchange : 0,
-            Cust_id : cust_id,
-            Cust_name : cust_name,
-            Table_id : "",
-            Table_no : "",
-            Styler_id : "",
-            Styler_name : "",
-            Create_by : user_id,
-            Create_date : iSalesdate,
-            Modify_by : "",
-            Modify_date : 0,
-            Salestype_id : salestypeid,
-            Salestype_name : salestypeid,
-            Keterangan : "",
-            Is_temp : 0,
-            Dailyid : getFormattedDateDailyID(),
-            Branchid : branch_id,
-            Regionid : region_id,
-            Channelid : channel_id,
-            Machineid : machine_id,
-            Shift_id : shift_id,
-            Card_number : "",
-            Device_id : deviceModel,
-            Posversion : POSVersion,
-            Ticketdate : iSalesdate,
-            Salesman_id : salesman_id,
-            Salesman_name : salesman_name
+            strsalesdate : getFormattedDateYYYYMMdd(),
+            salesdate : iSalesdate,
+            qty : 1,
+            is_open : 0,
+            is_discount : 0,
+            totalsales : 0,
+            totalpayment : 0,
+            totalchange : 0,
+            cust_id : cust_id,
+            cust_name : cust_name,
+            table_id : "",
+            table_no : "",
+            styler_id : "",
+            styler_name : "",
+            create_by : user_id,
+            create_date : iSalesdate,
+            modify_by : "",
+            modify_date : 0,
+            salestype_id : salestypeid,
+            salestype_name : salestypeid,
+            keterangan : "",
+            is_temp : 0,
+            dailyid : getFormattedDateDailyID(),
+            branchid : branch_id,
+            regionid : region_id,
+            channelid : channel_id,
+            machineid : machine_id,
+            shift_id : shift_id,
+            card_number : "",
+            device_id : deviceModel,
+            posversion : POSVersion,
+            ticket_date : iSalesdate,
+            salesman_id : salesman_id,
+            salesman_name : salesman_name
         ))
         
     }
@@ -295,15 +321,15 @@ class Controller : ObservableObject{
         
         //cari data item yang sama sebalum nya
         let dataLog = log.filter { item in
-            item.Id == iteminventory_id
+            item.id == iteminventory_id
         }
         print("datalog : ")
         print(dataLog)
         if dataLog.count > 0 {
             print("sudah ada 1")
             for logs in dataLog {
-                print("Ditemukan: \(logs.Name)")
-                _qty = iteminventory_qty + logs.Qty
+                print("Ditemukan: \(logs.name)")
+                _qty = iteminventory_qty + logs.qty
             }
         } else {
             _qty = iteminventory_qty
@@ -333,69 +359,70 @@ class Controller : ObservableObject{
             updateLogbyID(salesid: salesid, id: iteminventory_id, name: iteminventory_name, qty: _qty, price: _price, subtotal: subtotal, total: total, disc_amount: disc_amount, tax_amount: tax_amount)
         } else {
             log.append(Log(
-                Line : line,
-                Salesid : sales_id,
-                Id : iteminventory_id,
-                Name : iteminventory_name,
-                Qty : iteminventory_qty,
-                Price : price,
-                Subtotal : subtotal,
-                Discid : disc_id,
-                Discname : disc_name,
-                Discpercent : disc_percent,
-                Discamount : disc_amount,
-                Taxid : "",
-                Taxname : "",
-                Taxpercent : tax,
-                Taxamount : tax_amount,
-                Total : total,
-                Hold : 0,
-                Finish : 0,
-                Salesdate : iSalesdate,
-                Strsalesdate : getFormattedDateYYYYMMdd(),
-                Create_date : iSalesdate,
-                Create_by : user_id,
-                Modify_date : 0,
-                Modify_by : "",
-                Note : "",
-                Dailyid : getFormattedDateDailyID(),
-                Branchid : branch_id,
-                Regionid : region_id,
-                Channelid : channel_id,
-                Machineid : machine_id,
-                Promoph_id : "",
-                Promo_id : "",
-                Promo_name : "",
-                Salestypeid : salestypeid
+                line : line,
+                salesid : sales_id,
+                id : iteminventory_id,
+                name : iteminventory_name,
+                qty : iteminventory_qty,
+                price : price,
+                subtotal : subtotal,
+                discid : disc_id,
+                discname : disc_name,
+                discpercent : disc_percent,
+                discamount : disc_amount,
+                taxid : "",
+                taxname : "",
+                taxpercent : tax,
+                taxamount : tax_amount,
+                total : total,
+                hold : 0,
+                finish : 0,
+                salesdate : iSalesdate,
+                strsalesdate : getFormattedDateYYYYMMdd(),
+                create_date : iSalesdate,
+                create_by : user_id,
+                modify_date : 0,
+                modify_by : "",
+                note : "",
+                dailyid : getFormattedDateDailyID(),
+                branchid : branch_id,
+                regionid : region_id,
+                channelid : channel_id,
+                machineid : machine_id,
+                promoph_id : "",
+                promo_id : "",
+                promo_name : "",
+                salestypeid : salestypeid
             ))
         }
     }
-    func insertPayment(salesid : String, tender_id : String, tender_name : String, tender_type : String, tender_code : String, sales_amount : Double, payment_amount : Double, change_amount : Double, dailyid : String){
+    func insertPayment(salesid : String, tender_id : String, tender_name : String, tender_type : String, tender_code : String, sales_amount : Double, payment_amount : Double, change_amount : Double, dailyid : String, completion: @escaping () -> Void){
         payment.removeAll()
         payment.append(Payment(
-            Salesid : salesid,
-              Line : 10,
-              Tenderid : tender_id,
-              Tendername : tender_name,
-              Tendertype : tender_type,
-              Tendercode : tender_code,
-              Salesamount : sales_amount,
-              Paymentamount : payment_amount,
-              Changeamount : change_amount,
-              Disable : 0,
-              Dailyid : dailyid,
-            Branchid : branch_id,
-            Regionid : region_id,
-            Channelid : channel_id,
-            Machineid : machine_id))
+            salesid : salesid,
+            line : 10,
+            tender_id : tender_id,
+            tender_name : tender_name,
+            tender_type : tender_type,
+            tender_code : tender_code,
+            salesamount : sales_amount,
+            paymentamount : payment_amount,
+            changeamount : change_amount,
+            disable : 0,
+            dailyid : dailyid,
+            branchid : branch_id,
+            regionid : region_id,
+            channelid : channel_id,
+            machineid : machine_id))
+        completion()
     }
     func updateLogbyID(salesid: String, id: String, name: String, qty : Int, price : Double, subtotal : Double, total : Double, disc_amount : Double, tax_amount : Double) {
-        if let index = self.log.firstIndex(where: { $0.Salesid == salesid && $0.Id == id}) {
-            self.log[index].Qty = qty
-            self.log[index].Subtotal = subtotal
-            self.log[index].Total = total
-            self.log[index].Discamount = disc_amount
-            self.log[index].Taxamount = tax_amount
+        if let index = self.log.firstIndex(where: { $0.salesid == salesid && $0.id == id}) {
+            self.log[index].qty = qty
+            self.log[index].subtotal = subtotal
+            self.log[index].total = total
+            self.log[index].discamount = disc_amount
+            self.log[index].taxamount = tax_amount
             
             print("Logs dengan name \(name) berhasil diperbarui.")
         } else {
@@ -404,8 +431,8 @@ class Controller : ObservableObject{
     }
     func updateStatusCustomer(salesid: String, id: String, name: String) {
         if let index = self.status.firstIndex(where: { $0.salesid == salesid }) {
-            self.status[index].Cust_id = id
-            self.status[index].Cust_name = name
+            self.status[index].cust_id = id
+            self.status[index].cust_name = name
             
             print("Customer dengan ID \(salesid) berhasil diperbarui.")
         } else {
@@ -415,8 +442,8 @@ class Controller : ObservableObject{
     
     func updateStatusSalesman(salesid: String, id: String, name: String) {
         if let index = self.status.firstIndex(where: { $0.salesid == salesid }) {
-            self.status[index].Salesman_id = id
-            self.status[index].Salesman_name = name
+            self.status[index].salesman_id = id
+            self.status[index].salesman_name = name
             
             print("Salesman dengan ID \(salesid) berhasil diperbarui.")
         } else {
@@ -426,7 +453,7 @@ class Controller : ObservableObject{
     
     func updateStatusTotalSales(salesid: String, totalsales: Double) {
         if let index = self.status.firstIndex(where: { $0.salesid == salesid }) {
-            self.status[index].Totalsales = totalsales
+            self.status[index].totalsales = totalsales
             
             print("TotalSales dengan ID \(salesid) berhasil diperbarui.")
         } else {
@@ -437,11 +464,11 @@ class Controller : ObservableObject{
     func insertItemSize(context: ModelContext, itemAdd_name : String, itemAdd_qty : Int) {
         do {
             try context.delete(
-                        model: ItemSize.self,
-                        where: #Predicate<ItemSize> { item in
-                            item.itemsize_name == itemAdd_name
-                        }
-                    )
+                model: ItemSize.self,
+                where: #Predicate<ItemSize> { item in
+                    item.itemsize_name == itemAdd_name
+                }
+            )
             try context.save()
             
             let newData = ItemSize(itemsize_id: itemAdd_name, itemsize_name: itemAdd_name, itemsize_descr: itemAdd_name, itemsize_qty: itemAdd_qty)
@@ -465,10 +492,10 @@ class Controller : ObservableObject{
                     item.itemadd_name == name
                 }
             )
-             
+            
             let itemsToUpdate = try modelContext.fetch(descriptor)
             
-             
+            
             for item in itemsToUpdate {
                 item.itemadd_status = status
             }
@@ -492,17 +519,11 @@ class Controller : ObservableObject{
     
     func getCompany() {
         let timestampWithZ = ISO8601DateFormatter().string(from: Date())
-        
         self.SecretKeyNoLog = self.generateToken()
-        
-        print("SecretKeyNoLog : \(self.SecretKeyNoLog)")
-        
         guard let url = URL(string: self.url_api + "company/show") else { return}
         print(url)
-        
-        
-        
-        print(timestampWithZ)
+        print("SecretKeyNoLog : \(self.SecretKeyNoLog)")
+        print("timestampWithZ : \(timestampWithZ)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -521,8 +542,10 @@ class Controller : ObservableObject{
             
             if let error = error {
                 print("Error:", error.localizedDescription)
-                self.showAlert = true
-                self.responseMessage = "Error : \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                }
                 return
             }
             
@@ -570,19 +593,21 @@ class Controller : ObservableObject{
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.setValue(self.signature, forHTTPHeaderField: "SECRETKEY")
-         
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             
             
             if let error = error {
                 print("Error:", error.localizedDescription)
-                self.showAlert = true
-                self.responseMessage = "Error : \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             
             let json = JSON(data)
             let message = json["message"].stringValue
@@ -626,13 +651,15 @@ class Controller : ObservableObject{
             
             if let error = error {
                 print("Error:", error.localizedDescription)
-                self.showAlert = true
-                self.responseMessage = "Error : \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(message)
@@ -656,7 +683,7 @@ class Controller : ObservableObject{
                     } else {
                         print("NULL FORM TYPE")
                     }
-//
+                    //
                 } else {
                     self.isCorrect = false
                     self.isLoading = false
@@ -677,7 +704,7 @@ class Controller : ObservableObject{
         print("user_id : \(self.username)")
         print("user_pin : \(self.user_password)")
         print("password : \(self.user_password.md5.uppercased())")
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -697,13 +724,15 @@ class Controller : ObservableObject{
             
             if let error = error {
                 print("Error:", error.localizedDescription)
-                self.showAlert = true
-                self.responseMessage = "Error : \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
@@ -763,7 +792,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -784,13 +813,15 @@ class Controller : ObservableObject{
             
             if let error = error {
                 print("Error:", error.localizedDescription)
-                self.showAlert = true
-                self.responseMessage = "Error : \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
@@ -838,7 +869,7 @@ class Controller : ObservableObject{
         print("user_id : \(self.username)")
         print("user_pin : \(self.user_password)")
         print("password : \(self.user_password.md5.uppercased())")
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -855,20 +886,23 @@ class Controller : ObservableObject{
             
             
             if let error = error {
-                print("Error:", error.localizedDescription)
+                DispatchQueue.main.async {
+                    print("Error:", error.localizedDescription)
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
+            
             
             DispatchQueue.main.async {
+                self.dataBranch.removeAll()
                 self.responseMessage = message
                 if (json["state"] == true){
                     self.isCorrect = true
@@ -903,7 +937,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -920,18 +954,19 @@ class Controller : ObservableObject{
             
             
             if let error = error {
-                print("Error:", error.localizedDescription)
+                DispatchQueue.main.async {
+                    print("Error:", error.localizedDescription)
+                }
                 return
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -970,7 +1005,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1000,13 +1035,12 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -1072,7 +1106,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1098,13 +1132,12 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -1138,7 +1171,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1175,13 +1208,12 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -1202,7 +1234,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1225,13 +1257,12 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataBranch.removeAll()
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -1240,7 +1271,7 @@ class Controller : ObservableObject{
         }.resume()
     }
     
-    func custonerfindbynohp(noHP : String, completion: @escaping (JSON?) -> Void) {
+    func customerfindbynohp(noHP : String, completion: @escaping (JSON?) -> Void) {
         let timestampWithZ = ISO8601DateFormatter().string(from: Date())
         let apiname = "customer/customer_findbynohp"
         
@@ -1250,7 +1281,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1272,14 +1303,541 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
             
-            self.customer.removeAll()
+            
+            
+            DispatchQueue.main.async {
+                self.customer.removeAll()
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func list_tesnew(
+        completion: @escaping (String) -> Void
+    ) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "listdata/list_post"
+        
+        self.isLoading = true
+        
+        var strResult = ""
+        var strDebug = ""
+        let params: [[String: Any]] = [[
+            "channel_id": self.channel_id,
+            "region_id": self.region_id,
+            "branch_id": self.branch_id,
+            "machine_id": self.machine_id,
+            "terminal_id": self.terminal_id,
+            "username": self.username,
+            "daily_id": self.daily_id
+        ]]
+
+        
+        let jsonEncoder = JSONEncoder()
+        
+        var safeLogs: Any = []
+        var safePayment: Any = []
+        var safeStatus: Any = []
+        var safeCustomer: Any = []
+         
+        if let logsData = try? jsonEncoder.encode(self.log),
+           let logsObj = try? JSONSerialization.jsonObject(with: logsData, options: []) {
+            safeLogs = logsObj
+        }
+        
+        if let paymentData = try? jsonEncoder.encode(self.payment),
+           let paymentObj = try? JSONSerialization.jsonObject(with: paymentData, options: []) {
+            safePayment = paymentObj
+        }
+        
+        if let statusData = try? jsonEncoder.encode(self.status),
+           let statusObj = try? JSONSerialization.jsonObject(with: statusData, options: []) {
+            safeStatus = statusObj
+        }
+        
+        var customerJsonArray: [[String: Any]] = []
+        for client in self.customer {
+            let dict: [String: Any] = [
+                "cust_id": client.cust_id,
+                "cust_name": client.cust_name,
+                "cust_address": client.cust_address,
+                "cust_hp": client.cust_hp,
+                "cust_telp": client.cust_telp,
+                "cust_email": client.cust_email,
+                "cust_age": client.cust_age,
+                "cust_gender": client.cust_gender,
+                "member_id": client.member_id
+            ]
+            customerJsonArray.append(dict)
+        }
+        safeCustomer = customerJsonArray
+        
+        guard let url = URL(string: url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        let args: [String: Any] = [
+            "listlogs": safeLogs,
+            "listpayment": safePayment,
+            "params": params,
+            "liststatus": safeStatus,
+            "listitemsize": [],
+            "listcustomer": safeCustomer,
+            "listtickets": []
+        ]
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: args, options: [])
+            request.httpBody = jsonData
+            
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                print(jsonString)
+            }
+        } catch {
+            print("Error encoding JSON: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.isLoading = false
+                completion("Error: Failed to encode JSON body")
+            }
+            return
+        }
+        
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("List_post 2 Error:", error.localizedDescription)
+                let errorMessage = "List_post 2 \(error.localizedDescription)"
+                
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    completion(errorMessage)
+                }
+                return
+            }
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    completion("Error: No Data Received")
+                    print("Error: No Data Received")
+                }
+                return
+            }
+             
+            if let dataRawString = String(data: data, encoding: .utf8) {
+                print("Respon  : \(dataRawString)")
+                strDebug = dataRawString
+            }
+            
+            print("data : \(JSON(data))")
+            let json = JSON(data)
+            print("response body: \(json)")
+            
+            
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("response statusCode : List_post \(httpResponse.statusCode)")
+                
+                if httpResponse.statusCode == 200 {
+                    if json.isEmpty {
+                        strResult =  strDebug
+                        print("json.isEmpty : \(strResult)")
+                    } else {
+                        strResult = "success"
+                        
+                        let dataArray = json["data"].arrayValue
+                        if !dataArray.isEmpty {
+                            for row in dataArray {
+                                let salesId = row["sales_id"].stringValue
+                                strResult = "success-" + salesId
+                                print("strResult : \(strResult)")
+                            }
+                        }
+                        print("json not Empty : \(strResult)")
+                    }
+                } else {
+                    let responseBodyStr = json.description
+                    strResult = "error : \(httpResponse.statusCode) \(responseBodyStr) \n\(strDebug)"
+                    print("strResult " + strResult + "\n" + strDebug)
+                }
+            } else {
+                strResult = "error : " + strDebug
+            }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if !strResult.contains("success") {
+                }
+                
+                completion(strResult)
+            }
+        }.resume()
+    }
+    
+    func list_struk_new(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "struk/list_struk_new"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func getTiketMasuk_lokal(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "tiketmasuk/tiketmasuk_get_lokal"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func list_struk_logadditional(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "struk/list_struk_logadditional"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func list_struk_wristband(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "struk/list_struk_wristband"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func list_struk_gamesqr(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "struk/list_struk_gamesqr"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func list_struk_voucheropenbooth(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "struk/list_struk_voucheropenbooth"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
             
             DispatchQueue.main.async {
                 self.responseMessage = message
@@ -1307,7 +1865,7 @@ class Controller : ObservableObject{
         print(url)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-         
+        
         request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
         request.setValue(self.token, forHTTPHeaderField: "TOKEN")
         request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
@@ -1333,15 +1891,16 @@ class Controller : ObservableObject{
             }
             
             guard let data = data else { return }
-             
+            
             let json = JSON(data)
             let message = json["message"].stringValue
             print(json)
             print(message)
             print(json["state"])
-            self.dataProgramPos.removeAll()
+            
             
             DispatchQueue.main.async {
+                self.dataProgramPos.removeAll()
                 self.responseMessage = message
                 if (json["state"] == true){
                     self.isCorrect = true

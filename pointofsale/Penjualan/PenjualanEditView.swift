@@ -12,22 +12,22 @@ struct PenjualanEditView: View {
     @State private var navigateToPembayaran: Bool = false
     
     @State private var itemYangAkanDiedit: Log? = nil
-     
-    var totalQty: Int { cartItems.map { $0.Qty }.reduce(0, +) }
-    var totalSubtotal: Double { cartItems.map { $0.Subtotal }.reduce(0, +) }
-    var totalDiscount: Double { cartItems.map { $0.Discamount }.reduce(0, +) }
-    var tax: Double { cartItems.map { $0.Taxamount }.reduce(0, +) }
-    var finalTotal: Double { cartItems.map { $0.Total }.reduce(0, +) }
+    
+    var totalQty: Int { cartItems.map { $0.qty }.reduce(0, +) }
+    var totalSubtotal: Double { cartItems.map { $0.subtotal }.reduce(0, +) }
+    var totalDiscount: Double { cartItems.map { $0.discamount }.reduce(0, +) }
+    var tax: Double { cartItems.map { $0.taxamount }.reduce(0, +) }
+    var finalTotal: Double { cartItems.map { $0.total }.reduce(0, +) }
     
     var body: some View {
         ZStack {
             if let itemAktif = itemYangAkanDiedit {
-                            PenjualanEditItemView(item: itemAktif) {
-                                itemYangAkanDiedit = nil
-                            } onSimpan: { kuanstitasBaru, diskonBaru, note in
-                                updateItemInCart(id: itemAktif.Id, newQty: kuanstitasBaru, newDisc: diskonBaru, newNote: note)
-                                itemYangAkanDiedit = nil
-                            }
+                PenjualanEditItemView(item: itemAktif) {
+                    itemYangAkanDiedit = nil
+                } onSimpan: { kuanstitasBaru, diskonBaru, note in
+                    updateItemInCart(id: itemAktif.id, newQty: kuanstitasBaru, newDisc: diskonBaru, newNote: note)
+                    itemYangAkanDiedit = nil
+                }
             } else {
                 VStack(spacing: 0) {
                     // NAVBAR
@@ -50,12 +50,12 @@ struct PenjualanEditView: View {
                     
                     // LIST ITEM BELANJA
                     List {
-                        ForEach(cartItems, id: \.Id) { item in
-                            let itemSubtotalText = String(format: "%.0f", item.Subtotal)
-                            let itemDiscText = String(format: "%.0f", item.Discamount)
+                        ForEach(cartItems, id: \.id) { item in
+                            let itemSubtotalText = String(format: "%.0f", item.subtotal)
+                            let itemDiscText = String(format: "%.0f", item.discamount)
                             
                             HStack(spacing: 16) {
-                                Text("\(item.Qty)")
+                                Text("\(item.qty)")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.white)
                                     .frame(width: 36, height: 36)
@@ -63,7 +63,7 @@ struct PenjualanEditView: View {
                                     .clipShape(Circle())
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.Name)
+                                    Text(item.name)
                                         .font(.system(size: 16, weight: .semibold))
                                     HStack(spacing: 4) {
                                         Text("Disc: \(itemDiscText)")
@@ -88,8 +88,8 @@ struct PenjualanEditView: View {
                             .padding(.vertical, 8)
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                                            itemYangAkanDiedit = item
-                                                        }
+                                itemYangAkanDiedit = item
+                            }
                         }
                     }
                     .listStyle(PlainListStyle())
@@ -138,7 +138,7 @@ struct PenjualanEditView: View {
         .onAppear() {
             cartItems = self.controller.log
         }
-          
+        
         .sheet(isPresented: $showTotalPopup) {
             PopupTotalView(
                 qty: totalQty,
@@ -162,30 +162,30 @@ struct PenjualanEditView: View {
     }
     
     private func updateItem(id: String, newQty: Int, newDisc: Double) {
-        if let index = cartItems.firstIndex(where: { $0.Id == id }) {
-            cartItems[index].Qty = newQty
-            cartItems[index].Subtotal = cartItems[index].Price * Double(newQty)
-            cartItems[index].Discamount = newDisc
-            cartItems[index].Total = cartItems[index].Subtotal - newDisc + cartItems[index].Taxamount
+        if let index = cartItems.firstIndex(where: { $0.id == id }) {
+            cartItems[index].qty = newQty
+            cartItems[index].subtotal = cartItems[index].price * Double(newQty)
+            cartItems[index].discamount = newDisc
+            cartItems[index].total = cartItems[index].subtotal - newDisc + cartItems[index].taxamount
         }
     }
     
     private func hapusItem(_ item: Log) {
-        cartItems.removeAll(where: { $0.Id == item.Id })
+        cartItems.removeAll(where: { $0.id == item.id })
     }
     
     private func updateItemInCart(id: String, newQty: Int, newDisc: Double, newNote : String) {
-            if let index = cartItems.firstIndex(where: { $0.Id == id }) {
-                cartItems[index].Qty = newQty
-                cartItems[index].Subtotal = cartItems[index].Price * Double(newQty)
-                cartItems[index].Discamount = newDisc
-                cartItems[index].Note = newNote
-                
-                let tempSubtotalAfterDisc = max(0, cartItems[index].Subtotal - newDisc)
-                cartItems[index].Taxamount = tempSubtotalAfterDisc * (cartItems[index].Taxpercent / 100.0)
-                cartItems[index].Total = tempSubtotalAfterDisc + cartItems[index].Taxamount
-            }
+        if let index = cartItems.firstIndex(where: { $0.id == id }) {
+            cartItems[index].qty = newQty
+            cartItems[index].subtotal = cartItems[index].price * Double(newQty)
+            cartItems[index].discamount = newDisc
+            cartItems[index].note = newNote
+            
+            let tempSubtotalAfterDisc = max(0, cartItems[index].subtotal - newDisc)
+            cartItems[index].taxamount = tempSubtotalAfterDisc * (cartItems[index].taxpercent / 100.0)
+            cartItems[index].total = tempSubtotalAfterDisc + cartItems[index].taxamount
         }
+    }
 }
 
 struct PopupTotalView: View {
@@ -207,19 +207,19 @@ struct PopupTotalView: View {
             
             VStack(spacing: 20) {
                 PopupRow(icon: "arrow.right", title: "Jumlah Barang", value: "\(qty)", isBoldValue: true)
-                 
+                
                 PopupRow(icon: "arrow.right", title: "Subtotal", value: "Rp. \(Int(subtotal).formattedWithSeparator())")
-                 
+                
                 PopupRow(icon: "arrow.right", title: "Discount", value: "Rp. \(Int(discount).formattedWithSeparator())")
-                 
+                
                 PopupRow(icon: "arrow.right", title: "Tax", value: "Rp. \(Int(tax).formattedWithSeparator())")
-                 
+                
                 PopupRow(icon: "arrow.right", title: "Total", value: "Rp. \(Int(total).formattedWithSeparator())", isBoldValue: true)
             }
             .padding(.horizontal, 24)
             
             Divider()
-             
+            
             HStack(spacing: 16) {
                 Button(action: onTutup) {
                     Text("TUTUP")
@@ -249,7 +249,7 @@ struct PopupTotalView: View {
         .background(Color.white)
     }
     
-     
+    
     
 }
 
@@ -271,7 +271,7 @@ extension Double {
         return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }
- 
+
 struct PopupRow: View {
     let icon: String
     let title: String

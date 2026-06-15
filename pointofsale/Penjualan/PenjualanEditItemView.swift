@@ -13,14 +13,14 @@ struct PenjualanEditItemView: View {
         self.item = item
         self.onBatal = onBatal
         self.onSimpan = onSimpan
-        _qty = State(initialValue: item.Qty)
-        _discountAmount = State(initialValue: item.Discamount)
-        _catatan = State(initialValue: item.Note)
+        _qty = State(initialValue: item.qty)
+        _discountAmount = State(initialValue: item.discamount)
+        _catatan = State(initialValue: item.note)
     }
      
-    private var subtotal: Double { item.Price * Double(qty) }
+    private var subtotal: Double { item.price * Double(qty) }
     private var subtotalAfterDisc: Double { max(0, subtotal - discountAmount) }
-    private var taxValue: Double { subtotalAfterDisc * (item.Taxpercent / 100.0) }
+    private var taxValue: Double { subtotalAfterDisc * (item.taxpercent / 100.0) }
     private var total: Double { subtotalAfterDisc + taxValue }
    
     
@@ -33,7 +33,7 @@ struct PenjualanEditItemView: View {
                         .foregroundColor(.white)
                 }
                 Spacer()
-                Text(item.Name)
+                Text(item.name)
                     .font(.system(size: 22, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.leading, 16)
@@ -45,7 +45,7 @@ struct PenjualanEditItemView: View {
              
             ScrollView {
                 VStack(spacing: 24) {
-                    CustomOutlineField(title: "Harga", value: item.Price.formattedWithSeparator())
+                    CustomOutlineField(title: "Harga", value: item.price.formattedWithSeparator())
                      
                     HStack(spacing: 12) {
                         Button(action: { if qty > 1 { qty -= 1 } }) {
@@ -87,7 +87,7 @@ struct PenjualanEditItemView: View {
                     CustomOutlineField(title: "Subtotal after Disc", value: subtotalAfterDisc.formattedWithSeparator())
                     
                      
-                    CustomOutlineField(title: "Tax \(Int(item.Taxpercent))%", value: taxValue.formattedWithSeparator())
+                    CustomOutlineField(title: "Tax \(Int(item.taxpercent))%", value: taxValue.formattedWithSeparator())
                     
                      
                     CustomOutlineField(title: "Total", value: total.formattedWithSeparator())

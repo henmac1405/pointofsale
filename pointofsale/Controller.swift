@@ -784,6 +784,61 @@ class Controller : ObservableObject{
         }.resume()
     }
     
+    func getuserid(username : String, user_password : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "login/login"
+        self.isLoading = true
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        print("user_id : \(username)")
+        print("user_pin : \(user_password)")
+        print("password : \(user_password.md5.uppercased())")
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: username),
+            URLQueryItem(name: "user_pin", value: user_password.md5.uppercased()),
+            URLQueryItem(name: "device_id", value: "IOS")
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                DispatchQueue.main.async {
+                    self.showAlert = true
+                    self.responseMessage = "Error : \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.isLoading = false
+                completion(json)
+            }
+        }.resume()
+    }
+    
     func getVersionByType() {
         let timestampWithZ = ISO8601DateFormatter().string(from: Date())
         let apiname = "version/version"
@@ -1796,6 +1851,66 @@ class Controller : ObservableObject{
     func list_struk_voucheropenbooth(sales_id : String, completion: @escaping (JSON?) -> Void) {
         let timestampWithZ = ISO8601DateFormatter().string(from: Date())
         let apiname = "struk/list_struk_voucheropenbooth"
+        
+        self.isLoading = true
+        
+        guard let url = URL(string: self.url_api + apiname) else { return }
+        print(url)
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        request.setValue(self.apiKey, forHTTPHeaderField: "APIKEY")
+        request.setValue(self.token, forHTTPHeaderField: "TOKEN")
+        request.setValue(timestampWithZ, forHTTPHeaderField: "TIMESTAMP")
+        
+        var components = URLComponents()
+        components.queryItems = [
+            URLQueryItem(name: "channel_id", value: self.channel_id),
+            URLQueryItem(name: "region_id", value: self.region_id),
+            URLQueryItem(name: "branch_id", value: self.branch_id),
+            URLQueryItem(name: "machine_id", value: self.machine_id),
+            URLQueryItem(name: "terminal_id", value: self.terminal_id),
+            URLQueryItem(name: "sales_id", value: sales_id)
+        ]
+        request.httpBody = components.query?.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            
+            if let error = error {
+                print("Error:", error.localizedDescription)
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            let json = JSON(data)
+            let message = json["message"].stringValue
+            print(json)
+            print(message)
+            print(json["state"])
+            
+            
+            
+            DispatchQueue.main.async {
+                self.responseMessage = message
+                self.messageSyncronize = message
+                if (json["state"] == true){
+                    self.isLoading = false
+                } else {
+                    print("error : \(self.responseMessage)")
+                    self.isLoading = false
+                }
+                completion(json)
+            }
+        }.resume()
+    }
+    
+    func getposstatussales_byid(sales_id : String, completion: @escaping (JSON?) -> Void) {
+        let timestampWithZ = ISO8601DateFormatter().string(from: Date())
+        let apiname = "posstatussales/posstatussales_getbyid"
         
         self.isLoading = true
         

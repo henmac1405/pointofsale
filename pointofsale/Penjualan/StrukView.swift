@@ -8,7 +8,6 @@ struct StrukView: View {
     var noBill: String
     
     @State private var isLoadData: Bool = false
-    @State private var itemstruk: [JSON] = []
     @State private var subtotal: Double = 0
     @State private var discountItem: Double = 0
     @State private var discountTotal: Double = 0
@@ -18,6 +17,15 @@ struct StrukView: View {
     @State private var total: Double = 0
     @State private var payment: Double = 0
     @State private var change: Double = 0
+    
+    @State private var itemstruk: [JSON] = []
+    @State private var itemtiket: [JSON] = []
+    @State private var liststruk_logadditional: [JSON] = []
+    @State private var liststruk_wristband: [JSON] = []
+    @State private var liststruk_gamesqr: [JSON] = []
+    @State private var liststruk_voucheropenbooth: [JSON] = []
+    
+    private let lebarKertasThermal: CGFloat = 576
     
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +57,7 @@ struct StrukView: View {
             // MARK: - KERTAS STRUK PUTIH
             ScrollView {
                 if isLoadData {
-                    ProgressView("Mengambil Data...")
+                    ProgressView("Wait...")
                         .scaleEffect(1.5)
                         .padding(.top, 60)
                 } else {
@@ -211,6 +219,8 @@ struct StrukView: View {
                 //  Batal  
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark").font(.system(size: 16, weight: .bold)).foregroundColor(.white).frame(width: 54, height: 48).background(Color(red: 0.14, green: 0.54, blue: 0.94)).cornerRadius(24)}}.padding(.horizontal, 16).padding(.vertical, 14).background(Color(.systemGray6))}
+        .frame(width: lebarKertasThermal)
+        .padding(.horizontal, 16)
         .background(Color.white)
         .navigationBarBackButtonHidden(true)
         .onAppear() {
@@ -240,20 +250,87 @@ struct StrukView: View {
                     let tempDiscTotal = json["data"]["discounttotalamount"].doubleValue
                     
                     DispatchQueue.main.async {
+                        
                         self.itemstruk = jsonArray
                         self.subtotal = tempSubtotal
                         self.discountItem = tempDiscItem
                         self.discountTotal = tempDiscTotal
                         self.tax = tempTax
-                        self.isLoadData = false
+//                        self.isLoadData = false
+                        
+                        //tiketing
+                        self.controller.getTiketMasuk_lokal(sales_id: noBill) { tiketResult in
+                            guard let jsonTiket = tiketResult else {
+                                self.isLoadData = false
+                                return
+                            }
+                            
+                            let tiketArray = jsonTiket["data"].arrayValue
+                            
+                            DispatchQueue.main.async {
+                                self.itemtiket = tiketArray
+                                
+                                
+                                //Log Additional
+                                self.controller.list_struk_logadditional(sales_id: noBill) { logAddResult in
+                                    guard let jsonLogAdd = logAddResult else {
+                                        self.isLoadData = false
+                                        return
+                                    }
+                                    
+                                    let logAddArray = jsonLogAdd["data"].arrayValue
+                                    
+                                    DispatchQueue.main.async {
+                                        self.liststruk_logadditional = logAddArray
+                                        
+                                        //wristband
+                                        self.controller.list_struk_wristband(sales_id: noBill) { wristbandResult in
+                                            guard let jsonWrisband = wristbandResult else {
+                                                self.isLoadData = false
+                                                return
+                                            }
+                                            
+                                            let wristbandArray = jsonWrisband["data"].arrayValue
+                                            
+                                            DispatchQueue.main.async {
+                                                self.liststruk_wristband = wristbandArray
+                                                
+                                                
+                                                //games QR
+                                                self.controller.list_struk_gamesqr(sales_id: noBill) { gamesqrResult in
+                                                    guard let jsonGamesqr = gamesqrResult else {
+                                                        self.isLoadData = false
+                                                        return
+                                                    }
+                                                    
+                                                    let gamesQRArray = jsonGamesqr["data"].arrayValue
+                                                    DispatchQueue.main.async {
+                                                        self.liststruk_gamesqr = gamesQRArray
+                                                        
+                                                        //voucher openbooth
+                                                        self.controller.list_struk_voucheropenbooth(sales_id: noBill) { openboothResult in
+                                                            guard let jsonOpenBooth = openboothResult else {
+                                                                self.isLoadData = false
+                                                                return
+                                                            }
+                                                            
+                                                            let openboothArray = jsonOpenBooth["data"].arrayValue
+                                                            DispatchQueue.main.async {
+                                                                self.liststruk_voucheropenbooth = openboothArray
+                                                                self.isLoadData = false
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    
+                                    }
+                                }
+                            }
+                            
+                        }
                     }
-//                DispatchQueue.main.async {
-//                    if let data = result {
-//                        if data["state"] == true {
-//                            
-//                        }
-//                    }
-//                }
             }
         }
     }
